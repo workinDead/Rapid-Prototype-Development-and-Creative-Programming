@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>hiWeather</title>
+    <link rel="stylesheet" type="text/css" media="screen" href="weather.css" />
+</head>
+<body>
+
+    <div class="weather" id="weatherWidget">
+        <div class="weather-loc"></div>
+        <div class="weather-temp"></div>
+        <div class="weather-humidity"></div>
+        <img class="weather-tomorrow" src="http://us.yimg.com/i/us/nws/weather/gr/##ds.png" alt="tmr"/>
+        <img class="weather-dayaftertomorrow"src=" http://us.yimg.com/i/us/nws/weather/gr/##ds.png"  alt="dayaftertmr"/>
+        <button type="button" id="reload" value="reload">reload</button> 
+
+    </div>
+    
+     <!-- <script>
+        // This is a script with a model that warps the xhr object
+        function get(url, dat, callback) {
+          let xhr = new XMLHttpRequest();
+          xhr.onreadystatechange = function () {
+            // You have to READ the data AFTER the transmissions have been DONE, and the signal is 'xhr.readyState === 4'.
+            // And the same issue may occur in js async/await functions in the future:）
+            if (xhr.readyState === 4) {
+              let type = this.getResponseHeader('content-type');
+              if (type.indexOf('application/json') > -1) {
+                let object = xhr.response ? JSON.parse(xhr.response) : {};
+                callback(object);
+              } else {
+                callback(xhr.response);
+              }
+            }
+          }
+          xhr.open('GET', url, true);
+          xhr.send(null);
+        } 
+  
+        let weatherWidget = document.getElementById('weatherWidget');
+
+        get('https://classes.engineering.wustl.edu/cse330/content/weather_json.php', null, function (weather) {
+          // console.log(weather);
+          weatherWidget.children[0].innerText = weather.location.city + weather.location.state;
+          weatherWidget.children[1].innerText = weather.current.temp;
+          weatherWidget.children[2].innerText = weather.atmosphere.humidity;
+          
+          // current, tomorrow and dayafter
+          weatherWidget.children[3].src = weatherWidget.children[3].src.replace("##",weather.tomorrow.code);
+          weatherWidget.children[4].src = weatherWidget.children[4].src.replace("##",weather.dayafter.code);
+        });
+      </script> -->
+      <script>
+        let weatherWidget = document.getElementById('weatherWidget');
+        let reloadBtn = document.getElementById('reload');
+        const API_URL = 'https://classes.engineering.wustl.edu/cse330/content/weather_json.php';
+
+        weatherWidget.addEventListener("DOMContentLoaded",fetchWeather(API_URL),false);
+        reload.addEventListener("click", reloadPage,false);
+
+        function fetchWeather(API_URL){
+          fetch(API_URL,{method:'get'}).then(
+            res => res.json()).then(data=>{
+            weatherWidget.children[0].innerText = data.location.city + data.location.state;
+            weatherWidget.children[1].innerText = data.current.temp;
+            weatherWidget.children[2].innerText = data.atmosphere.humidity;
+            
+            // current, tomorrow and dayafter
+            weatherWidget.children[3].src = weatherWidget.children[3].src.replace("##",data.tomorrow.code);
+            weatherWidget.children[4].src = weatherWidget.children[4].src.replace("##",data.dayafter.code);
+
+            })
+        }
+        function reloadPage(){
+          window.location.reload(true);
+        }
+      </script>
+
+</body>
+</html>

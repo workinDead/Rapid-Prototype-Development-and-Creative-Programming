@@ -1,0 +1,1 @@
+\b[a-zA-Z]+[aeiouAEIOU]{3}[a-zA-Z]+\b

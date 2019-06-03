@@ -1,0 +1,125 @@
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 20px;
+    width: 100%;
+    background: none;
+}
+h2{
+    text-align: center;
+}
+.wrapper{
+    margin: auto;
+    white-space: nowrap;
+    width: 250px;
+}
+span{
+    font-family: Arial Narrow;
+    color: #990000;
+    font-weight: bold;
+    
+}
+
+input[type="text"]{
+    width: 250px;
+    height: 25px;
+    margin-bottom: 5px;
+    border-radius: 5px 5px 5px 5px;
+    padding: 0 0 0 6px;
+    border: 1px solid black;
+}
+input[type="file"]{
+    background: #EFEFEF;
+    border-radius: 5px 5px 5px 5px;
+    -moz-border-radius: 5px 5px 5px 5px;
+    -webkit-border-radius: 5px 5px 5px 5px;
+    -khtml-border-radius: 5px 5px 5px 5px;
+    border: 1px solid #000000;
+}
+.submit{
+    background: #EFEFEF;
+    border-radius: 5px 5px 5px 5px;
+    -moz-border-radius: 5px 5px 5px 5px;
+    -webkit-border-radius: 5px 5px 5px 5px;
+    -khtml-border-radius: 5px 5px 5px 5px;
+    border: 1px solid #000000;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #333;
+}
+
+li {
+    float: right;
+    color: white;
+
+}
+
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+
+/* Change the link color to #111 (black) on hover */
+li a:hover {
+    background-color: #4CAF50;
+}
+
+li input[type='submit'] {
+    display: block;
+    color: white;
+    font-size: 20px;
+    text-align: center;
+    padding: 14px 16px;
+    border:0px;
+    background:transparent;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+}
+
+
+/* Change the link color to #111 (black) on hover */
+li input[type='submit']:hover {
+    background-color: #4CAF50;
+}
+
+/* Add a gray right border to all list items, except the last item (last-child) */
+li {
+    border-right: 1px solid #bbb;
+}
+
+.presentation{
+    display: grid;
+    grid-gap: 10px 20px;
+    grid-template-columns: repeat(3, 1fr);
+    left: 0;
+    padding-right: 16px;
+    position: relative;
+    right: 0;
+    z-index: 1;
+    background-color: #fafafa;
+    border-bottom: 1px solid #eee;
+}
+
+.clouddata{
+    display: grid;
+    grid-gap: 10px 20px;
+    grid-template-columns: repeat(3, 1fr);
+    left: 0;
+    padding-right: 16px;
+    position: relative;
+    right: 0;
+    z-index: 1;
+}
+.in{
+    color: #0055A5;
+    text-decoration: none;
+}

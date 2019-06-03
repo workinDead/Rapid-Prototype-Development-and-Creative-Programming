@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>iCalculator</title>
+</head>
+
+<body>
+    <div class="container">
+        <form id="calform" action="mycalculator" method="GET">
+            <fieldset class="number">
+                <h2>Welcome to iCalculator</h2>
+                <p style="color: #990000;font-weight: bold;">
+                    *Tips: Each time you can only choose one operator to calculate.<br>
+                    We assume x to be the first value, y to be the second.<br>
+                </p>
+                <input type="text" id="xvalue" value="" placeholder="x" />
+                <input type="text" id="yvalue" value="" placeholder="y" />
+
+            </fieldset>
+            <fieldset class="ops">
+                <span><input type="radio" name="op" value="/" />/</span>
+                <span><input type="radio" name="op" value="*" />*</span>
+                <span><input type="radio" name="op" value="-" />-</span>
+                <span><input type="radio" name="op" value="+" />+</span>
+            </fieldset>
+            <span id="showtext"></span>
+        </form>
+    </div>
+    <script>
+        document.getElementById("xvalue").addEventListener("keyup", getXvalue);
+        document.getElementById("yvalue").addEventListener("keyup", getYvalue);
+        document.getElementById("xvalue").addEventListener("change", getAns);
+        document.getElementById("yvalue").addEventListener("change", getAns);
+        var ans;
+        var radios = document.forms["calform"].elements["op"];
+        res = document.getElementById("showtext");
+
+        function getXvalue() {
+            var x = document.getElementById("xvalue");
+            return x.value;
+        }
+
+        function getYvalue() {
+            var y = document.getElementById("yvalue");
+            return y.value;
+        }
+        function getAns() {
+            var x = getXvalue();
+            var y = getYvalue();
+            op = radios.value;
+
+            if (x != "" && y != "") {
+                x = Number(x);
+                y = Number(y);
+                if (op != "") {
+                    switch (op) {
+                        case "+":
+                            ans = x + y;
+                            break;
+                        case "-":
+                            ans = x - y;
+                            break;
+                        case "/":
+                            if (y == 0) {
+                                ans = "Wrong Input! Please Input Again!";
+                            }
+                            else {
+                                ans = x / y;
+                            }
+                            break;
+                        case "*":
+                            ans = x * y;
+                            break;
+                    }
+                    if (isNaN(ans)) {
+                        ans = "Wrong Input! Please Input Again!";
+                    }
+                }
+            } else {
+                x = Number(x);
+                y = Number(y);
+                if (isNaN(x) || isNaN(y)) {
+                    ans = "Wrong Input! Please Input Again!";
+                } else {
+                    ans = "";
+                }
+            }
+            res.innerHTML = ans;
+        }
+
+
+        for (var i = 0, max = radios.length; i < max; i++) {
+            radios[i].onclick = function () {
+                var op = this.value;
+                var x = getXvalue();
+                var y = getYvalue();
+                if (x != "" && y != "") {
+                    x = Number(x);
+                    y = Number(y);
+                    switch (op) {
+                        case "+":
+                            ans = x + y;
+                            break;
+                        case "-":
+                            ans = x - y;
+                            break;
+                        case "/":
+                            if (y == 0) {
+                                ans = "Wrong Input! Please Input Again!";
+                            }
+                            else {
+                                ans = x / y;
+                            }
+                            break;
+                        case "*":
+                            ans = x * y;
+                            break;
+                    }
+                    if (isNaN(ans)) {
+                        ans = "Wrong Input! Please Input Again!";
+                    }
+                } else {
+                    ans = "Wrong Input! Please Input Again!";
+                }
+                res.innerHTML = ans;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

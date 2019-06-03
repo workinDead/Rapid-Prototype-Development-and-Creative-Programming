@@ -1,0 +1,13 @@
+#[Query5] An individual report card for Jack Johnson, consisting of only his student ID, e-mail address, and average grade.
+mysql> select id,first_name,last_name,email_address
+    -> ,avg(grade) as avg_grade
+    -> from students
+    -> left outer join grades on students.id = grades.student_id
+    -> where students.first_name = 'Jack' and students.last_name = 'Johnson'
+    -> group by student_id;
++-----+------------+-----------+------------------------------+-----------+
+| id  | first_name | last_name | email_address                | avg_grade |
++-----+------------+-----------+------------------------------+-----------+
+| 257 | Jack       | Johnson   | jjmuzak@brushfirerecords.com | 96.125000 |
++-----+------------+-----------+------------------------------+-----------+
+1 row in set (0.00 sec)

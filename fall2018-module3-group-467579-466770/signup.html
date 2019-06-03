@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Signup on Fox</title>
+    <link type="text/css" rel="stylesheet" href="personalpage.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+</head>
+<body>
+
+<header>
+    <nav>
+        <ul>
+            <li>
+                <a href="mainpage.php" class="active">
+                    <span class="material-icons nav-icons">home</span>
+                    <span class="text">
+                            Home
+                    </span>
+                </a>
+            </li>
+
+            <li style="float:right;">
+                <div>
+                    <a href="signup.html" class="active">Sign up </a>
+                </div>
+            </li>
+            <li style="float:right;">
+                <div>
+                    <a href="login.html">Log in</a>
+                </div>
+            </li>
+
+        </ul>
+    </nav>
+</header>
+
+    <div class="container">
+        <div class="wrapper">
+        <h1>
+            &nbsp;Create your account
+        </h1>
+        <form action="signup.php" method="post">
+            <div>
+                <input type="text" name="username" placeholder="Username">
+            </div>
+            <div>
+                <input type="password" name="password" placeholder="Password">
+            </div>
+            <div>
+                <input type="submit" value="Sign up">
+            </div>
+            <div>
+                Already have an account?
+            <a href="login.html" class="active">Log in now »</a>
+            </div>
+        </form>
+        </div>
+    </div>
+
+</body>
+</html>

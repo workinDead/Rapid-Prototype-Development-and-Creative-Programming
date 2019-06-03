@@ -1,0 +1,261 @@
+body {
+    margin: 0;
+    font-size: 14px;
+    font-family: 'Product Sans',Arial,sans-serif;
+    overflow: hidden;
+    height: 100%;
+    background-color: #fff;
+}
+        
+header{
+    height: 100%;
+    text-align: center;
+    width: auto;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+nav{
+    height: 100%;
+    text-align: center;
+    width: auto;
+}
+
+nav ul{
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #ffffff;
+    position:relative;
+}
+nav ul li{
+    float: left;
+
+    }
+nav ul>li .nav-icons{
+    float: left;
+    margin: 11px 0 0 10px;
+    width: 23px;
+    height: 23px;
+    color: inherit;
+    background: transparent;
+    display: inline-block;
+    font-style: normal;
+    vertical-align: baseline;
+    position: relative;
+    
+}
+
+nav ul>li>a .text {
+    float: left;
+    margin-left: 3px;
+    margin-top: 17px;
+    padding: 0;
+}
+nav ul>li>a {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    height: 46px;
+    line-height: 1;
+    padding: 0 14px 0 4px;
+}
+nav ul li a {
+    position: relative;
+    font-size: 12px;
+}
+a {
+    color: #66757f;
+    text-decoration: none;
+}
+
+a:hover,a:focus,a:active{
+    color: #0B8043;
+}
+#filterevent{
+    width:50px;
+    height: 40px;
+    line-height: 46px;
+    padding-right:40px;
+}
+#filterevent select{
+    border:0px;
+}
+#filterevent select option{
+    background-color:yellow;
+}
+#sharefc-dialog{
+    display: none;
+    position:relative;
+}
+
+#addevent-dialog{
+    display: none;
+    position: relative;
+}
+#editevent-dialog{
+    display: none;
+    position: relative;
+}
+#signup-dialog{
+    display: none;
+    position: relative;
+}
+#login-dialog{
+    display: none;
+    position: relative;
+}
+label, input { 
+    display:block; }
+input.text { 
+    margin-bottom:12px; 
+    width:95%; 
+    padding: .4em; }
+fieldset { 
+    padding:0; 
+    border:0; 
+    margin-top:10px; 
+}
+.ui-dialog .ui-state-error { padding: .3em !important; }
+.validateTips { border: 1px solid transparent !important; padding: 0.3em !important; }
+
+.ui-widget-header{
+    background: #fff !important;
+    border: 0px !important;
+}
+.ui-button{
+    background: #fff !important;
+    /* color:black; */
+}
+.ui-state-default{
+    background: #fff !important;
+    border: 0px !important;
+
+}
+.ui-state-hover{
+    background:#0B8043 !important;
+
+    color: #ffffff !important;
+}
+.overflow {
+    height: 100px;
+}
+#presentation button{
+    display:block;
+    width:100%;
+    background: #4285f4;
+    color: #fff;
+    text-align: center;
+    border-bottom: #e0e0e0 1px solid;
+}
+.ui-tooltip{
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+}
+#wrap {
+width: 1100px;
+margin: 0 auto;
+}
+
+#calendar {
+    /* float: right; */
+margin: 0 auto;
+width: 900px;
+background-color: #FFFFFF;
+border-radius: 6px;
+box-shadow: 0 1px 2px #C3C3C3;
+}
+.row{
+    position: relative;
+    overflow: hidden;
+    border-bottom: #e0e0e0 1px solid;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-flex: 1 1 0%;
+    -webkit-flex: 1 1 0%;
+    flex: 1 1 0%;
+}
+
+
+.gridcell{
+    font-size: 14px;
+    line-height: 25px;
+    border-right: #e0e0e0 1px solid;
+    -webkit-box-flex: 1 1 0%;
+    -webkit-flex: 1 1 0%;
+    flex: 1 1 0%;
+    font-weight: 400;
+    margin: 0;
+    float: left;
+}
+#presentation .gridcell{
+    height: 100px;
+    overflow-y: scroll;
+
+}
+.row span{
+    padding-left:8px;
+
+}
+
+
+#columnheader{
+    color: #757575;
+    text-align: center;
+}
+div{
+    display: block;
+}
+
+ol, ul {
+    list-style: outside none none;
+}
+
+.tags {
+    background: none repeat scroll 0 0 #fff;
+    border: 1px solid #ccc;
+    display: table;
+    padding: 0.5em;
+    width: 100%;
+}
+
+.tags li.tagAdd, .tags li.addedTag {
+    float: left;
+    
+    margin: 0.25em;
+}
+.tags li.addedTag {
+    background: none repeat scroll 0 0  rgb(121, 134, 203);
+    border-radius: 2px;
+    color: #fff;
+    padding: 0.25em;
+}
+.tags input, li.addedTag {
+    border: 1px solid transparent;
+    border-radius: 2px;
+    box-shadow: none;
+    display: block;
+    width: auto;
+    padding: 0.25em;
+}
+.tags input:hover {
+    border: 1px solid #000;
+}
+
+#sharecard{
+    width: 250px;
+    min-height: 120px;
+    background-color: #fff;
+    /* border-bottom: 1px solid #e0e0e0; */
+
+}
+#sharecard input{
+    display: inline;
+
+}

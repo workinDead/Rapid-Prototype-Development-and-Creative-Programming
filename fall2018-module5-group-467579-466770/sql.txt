@@ -1,0 +1,92 @@
+
+@author: houlan
+@stu_id: 466770
+@description: iCalender database description
+-----------------------------------------------------------------------
+
+mysql> show tables;
++---------------------+
+| Tables_in_icalendar |
++---------------------+
+| editevent           |
+| events              |
+| sharefc             |
+| users               |
++---------------------+
+
+mysql> describe users;
++----------+--------------+------+-----+-------------------+-------+
+| Field    | Type         | Null | Key | Default           | Extra |
++----------+--------------+------+-----+-------------------+-------+
+| username | varchar(255) | NO   | PRI | NULL              |       |
+| password | varchar(255) | NO   |     | NULL              |       |
+| joined   | timestamp    | NO   |     | CURRENT_TIMESTAMP |       |
++----------+--------------+------+-----+-------------------+-------+
+
+
+mysql> describe events;
++----------+------------------+------+-----+---------+----------------+
+| Field    | Type             | Null | Key | Default | Extra          |
++----------+------------------+------+-----+---------+----------------+
+| owner    | varchar(255)     | NO   | MUL | NULL    |                |
+| event_id | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+| title    | varchar(255)     | NO   |     | NULL    |                |
+| date     | datetime         | NO   |     | NULL    |                |
+| time     | char(4)          | YES  |     | NULL    |                |
+| tag      | varchar(255)     | NO   |     | default |                |
++----------+------------------+------+-----+---------+----------------+
+
+mysql> describe editevent;
++----------+------------------+------+-----+---------+-------+
+| Field    | Type             | Null | Key | Default | Extra |
++----------+------------------+------+-----+---------+-------+
+| event_id | int(10) unsigned | NO   | PRI | NULL    |       |
+| editor   | varchar(255)     | NO   | PRI | NULL    |       |
++----------+------------------+------+-----+---------+-------+
+
+mysql> describe sharefc;
++----------+--------------+------+-----+---------+-------+
+| Field    | Type         | Null | Key | Default | Extra |
++----------+--------------+------+-----+---------+-------+
+| sender   | varchar(255) | NO   | PRI | NULL    |       |
+| receiver | varchar(255) | NO   | PRI | NULL    |       |
++----------+--------------+------+-----+---------+-------+
+
+
+@Appendix code: 
+create table users (
+	username varchar(255) NOT NULL,
+	password varchar(255) NOT NULL,
+	joined timestamp NOT NULL DEFAULT current_timestamp,
+	primary key (username)
+) engine = InnoDB default character set = utf8 collate = utf8_general_ci;
+
+
+create table events (
+	owner varchar(255) NOT NULL,
+	event_id int UNSIGNED NOT NULL AUTO_INCREMENT,
+	title varchar(255) NOT NULL,
+	date datetime not null,
+	time char(4),
+	tag varchar(255),
+	primary key (event_id),
+	foreign key (owner) references users(username)
+) engine = InnoDB default character set = utf8 collate = utf8_general_ci;
+
+
+create table editevent (	
+    event_id int UNSIGNED NOT NULL,
+	editor varchar(255) NOT NULL,
+	foreign key (editor) references users(username),
+	foreign key (event_id) references events(event_id),
+    CONSTRAINT editeach PRIMARY KEY (event_id,editor)
+)engine = InnoDB default character set = utf8 collate = utf8_general_ci;
+
+
+create table sharefc(
+	sender varchar(255) NOT NULL,
+	receiver varchar(255) NOT NULL,
+	foreign key (sender) references users(username),
+	foreign key (receiver) references users(username),
+    	CONSTRAINT usrbond PRIMARY KEY (sender,receiver)
+)engine = InnoDB default character set = utf8 collate = utf8_general_ci;

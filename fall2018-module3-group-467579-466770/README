@@ -1,0 +1,15 @@
+# README #
+* @Authors: Hou LAN 466770 & Bingquan Gu 467579 
+* @Mainpage: http://13.58.19.111/~hlan/fscode/mainpage.php
+
+This README is brief introduction of files in CloudInstance_WebServer
+
+### Creative Portion  ###
+
+* 1.√ Search Stories in Mainpage
+* 2.√ Upload User profile photo
+* 3.√ Edit password and user profile
+
+### Login Info  ###
+* 1.√ Username and Password are no longer than 30 letters;
+* 2.√ Username and Password only consist of a combinationation of letters and numbers

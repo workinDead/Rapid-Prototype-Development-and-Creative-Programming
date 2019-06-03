@@ -1,0 +1,12 @@
+#[Query3] The names, student IDs, and CSE330 grades of all students who are in CSE330S.
+mysql> select id,first_name,last_name,grade from students
+    -> left outer join grades on students.id = grades.student_id
+    -> where course_code = '330S' and school_code = 'E' and dept_id = 81;
++-----+------------+-----------+--------+
+| id  | first_name | last_name | grade  |
++-----+------------+-----------+--------+
+|  88 | Ben        | Harper    |  35.50 |
+| 115 | Marc       | Roberge   |  75.00 |
+| 202 | Matt       | Freeman   | 100.00 |
++-----+------------+-----------+--------+
+3 rows in set (0.00 sec)

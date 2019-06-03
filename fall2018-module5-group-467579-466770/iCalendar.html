@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+	<title>iCalendar</title>
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="calendar.js"></script>
+    <script>
+
+		
+	var date = new Date();
+	var d = date.getDate();
+	var m = date.getMonth(); // update
+	var y = date.getFullYear(); // update
+	
+	var currentWeek = new Week(date); 
+	var currentMonth = new Month(y,m); // update
+	var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+	
+	var max_event_id = 0;
+	// initiate row number and column number
+	const col_num = 7;
+	const row_num = currentMonth.getWeeks()["length"];
+	const col_header = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+	const mon_header = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+	
+	$( document ).ready(function() {
+
+
+		// add header of calendar
+		$("#year a span").text(y);
+		$("#month a span").text(mon_header[m]);
+		$('#today').attr("title", date.toDateString(options));
+		$("#addevent").hide();
+		$("#sharefc").hide();
+		$("#sharecard").hide();
+		$("#filterevent").hide();
+
+		// add circle to today's date
+		for(j=0;j<col_num;j++){
+			const newColheader= document.createElement("div");  // creates a node with the tag name li
+			newColheader.appendChild(document.createTextNode(col_header[j]));
+			newColheader.setAttribute("class", "gridcell");
+			document.getElementById("columnheader").appendChild(newColheader);
+		}	
+			
+		// draw presnetation of calendar without loading data  
+		drawCalendar();
+		function drawCalendar(){
+
+			for (i=0;i<row_num;i++){
+				const newRow= document.createElement("div");  // creates a node with the tag name li
+				newRow.setAttribute("class", "row");
+				document.getElementById("presentation").appendChild(newRow);
+				presentWeek = currentMonth.getWeeks()[i];
+				
+				for(j=0;j<col_num;j++){
+
+					const newCell= document.createElement("div");  // creates a node with the tag name li
+					newCell.setAttribute("class", "gridcell");	
+					document.getElementsByClassName("row")[i+1].appendChild(newCell);
+
+				}	
+			}
+			$("#presentation .gridcell").append("<span></span>");
+			updateCalendar();
+		}	
+
+		$("#nextmonth").click(function() {
+			currentMonth = currentMonth.nextMonth();
+			y = currentMonth.year; // Month() funciton in calendar.js
+			m = currentMonth.month;
+			updateCalendar();
+			// alert( "The new month is " + mon_header[currentMonth.month] + " " + currentMonth.year );
+
+		});
+		$("#premonth").click(function() {
+			currentMonth = currentMonth.prevMonth();
+			y = currentMonth.year; // Month() funciton in calendar.js
+			m = currentMonth.month;
+			updateCalendar();
+			// alert( "The new month is " + mon_header[currentMonth.month] + " " + currentMonth.year );
+
+		});
+		$(".gridcell").on('click','button',function(){
+			// alert($(this).attr('id')+$(this).attr('class')+$(this).attr('name')+$(this).attr('title')+$(this).attr('value'));
+			showEditevent($(this));
+		});
+			
+
+		function showEditevent(e){
+			$("#editevent-dialog .addedTag").remove();
+
+			$("#editevent-dialog .tags").hide();
+			$("#editevent-dialog .tags").prev().hide();
+			document.getElementById("editevent-dialog").name = e.attr('id');
+			viewEachAjax(e);
+			if(e.attr("class")=="otherfc"){
+
+				$('#editevent-dialog label').each(function() {
+					$(this).next().attr('disabled', true); // remember to set back
+				});
+				updateTips("You are only allowed to read");
+			
+				$('.ui-dialog-buttonpane').hide()
+				$("#editevent-dialog").dialog({          
+				width: 350,
+				minheight: 500,
+				modal: true,
+				close: function() {
+					$("#editevent-dialog").trigger("reset");
+				}
+
+			});
+
+			}else{
+			$('#editevent-dialog label').each(function() {
+				$(this).next().attr('disabled', false); // remember to set back
+
+			});
+			updateTips("");
+			$('.ui-dialog-buttonpane').show()
+
+			$("#editevent-dialog").dialog({          
+				width: 350,
+				minheight: 500,
+				modal: true,
+				open: function(){
+					$("#ee-datepicker").datepicker();
+					$( "#ee-timepicker" )
+						.selectmenu()
+						.selectmenu( "menuWidget" )
+						.addClass( "overflow" );			
+				},
+				buttons: {
+
+				"Delete": function(){
+					deleventAjax(e.attr('id'));},
+				"Edit": function(){
+					if(checkRegexp($("#ee-datepicker"),/^([1-9]|1[012])[- /.]([1-9]|[12][0-9]|3[01])[- /.](19|20)\d\d$/,"Date may consist of mm/dd/yyyy.")){					
+						editeventAjax($("#editevent-dialog .tags").is(":visible"));
+					}
+				}
+				},
+				close: function() {
+					$("#editevent-dialog").trigger("reset");
+				}
+
+			});
+		
+			var eeAddtag = $("#editevent-dialog .addedTag"); // Get the password from the form
+			var coworkers = new Set();
+			if($("#editevent-dialog .tags").is(":visible")){
+
+				for (var i = 0; i < eeAddtag.length; i++) {
+					coworkers.add(eeAddtag[i].attr('id')); 
+
+				}
+
+
+			}
+			$("#editevent-dialog .tags").on("click","span",function(e){
+					$(this).parent().remove();
+					coworkers.delete($(this).parent().attr('id'));
+				});
+			$("#editevent-dialog #ee-addcoworker").blur(
+				function(e){
+
+					var coworkersvalid =false;
+					if($("#ee-addcoworker").val().length>0){
+						if(checkLength($("#ee-addcoworker"),"coworkers", 3, 16)&&checkRegexp($("#ee-addcoworker"),/^[0-9a-zA-Z]+$/,"Coworkers may consist of a-zA-Z and 0-9.")){
+						coworkersvalid=true;
+					}}
+
+					if((!coworkers.has($(this).val()))&&($(this).val().length!=0)&&coworkersvalid){
+						// add new coworker
+						coworkers.add($(this).val());
+						const newCoworker= document.createElement("li");  // creates a node with li
+						newCoworker.appendChild(document.createTextNode($(this).val()));
+						newCoworker.setAttribute("class", "addedTag");
+						newCoworker.setAttribute("id",$(this).val());
+						const newSpan = document.createElement("span");
+						newSpan.appendChild(document.createTextNode("close"));
+						newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+						newSpan.setAttribute("style", "font-size:12px;");
+						newCoworker.appendChild(newSpan);
+						$("#editevent-dialog #ee-addcoworker").parent().prepend(newCoworker);
+						$("#editevent-dialog #ee-addcoworker").val("");
+					}else{
+						$("#editevent-dialog #ee-addcoworker").val("");
+					}
+				}
+			);
+		}
+
+    	}
+
+
+
+
+    	
+		function editeventAjax(isowner) {
+			const event = document.getElementById("ee-event").value; // Get the event from the form
+			const datepicker = document.getElementById("ee-datepicker").value; // Get the datepicker from the form
+			const timepicker = document.getElementById("ee-timepicker").value; // Get the timepicker from the form
+			const tag = document.getElementById("ee-tag").value; // Get the tag from the form
+			const id = document.getElementById("editevent-dialog").name; // Get the id from the form
+			var eeAddtag = $("#editevent-dialog .addedTag"); // Get the password from the form
+			var coworkers = new Set();
+			if(eeAddtag.length>0){
+				for (var i = 0; i < eeAddtag.length; i++) {
+				coworkers.add(eeAddtag[i].id); 
+				}
+			}
+
+			// console.log(coworkers);
+
+			eeDate = new Date(datepicker);
+			ey = eeDate.getFullYear();
+			em = eeDate.getMonth();
+			ed = eeDate.getDate();
+			// console.log(isowner);
+			// console.log(coworkers.size);
+
+			// Make a URL-encoded string for passing POST data:
+			var data = { 'id':id,'event': event, 'datepicker': datepicker,'timepicker': timepicker,'tag':tag,"isowner":isowner};
+			if(isowner&&coworkers.size>0){
+				data["coworkers"]=Array.from(coworkers);
+			}else{
+				data["coworkers"]= [];
+			}
+			
+			// console.log(data);
+			fetch("editevent_ajax.php", {
+					method: 'POST',
+					body: JSON.stringify(data),
+					headers: { 'content-type': 'application/json' }
+				}).then(response => response.json())
+				.then(alldata => {
+					// console.log(alldata.success);
+					if(alldata.success){
+						setCookie(alldata.token); //settoken
+						if (sessionCookie = null){
+							alert('Request forgery detected');
+						}else{
+						document.getElementById(id).remove();
+						if (document.getElementById(String(em)+String(ed))!=null){ // if this year and this month, find element by id: am+ad
+						// update event within page 
+						const newEvent= document.createElement("button");  // creates a node with the tag name button
+						newEvent.appendChild(document.createTextNode(event));
+						max_event_id = alldata.max_event_id;
+						// console.log(max_event_id);
+						newEvent.setAttribute("id",id);
+						newEvent.setAttribute("title", tag);
+						document.getElementById(String(em)+String(ed)).appendChild(newEvent);
+						}
+						$("#editevent-dialog").dialog( "close" );
+
+					}
+				}else{
+					updateTips("Failed to edit due to database error. Please try again!");
+
+				}
+				});
+			}
+
+		function deleventAjax(event_id){
+			const data = { 'id':event_id};
+			fetch("delevent_ajax.php", {
+					method: 'POST',
+					body: JSON.stringify(data),
+					headers: { 'content-type': 'application/json' }
+				}).then(response => response.json())
+				.then(alldata => {
+
+			if(alldata.success&&(document.getElementById(event_id)!=null)){
+				setCookie(alldata.token); //settoken
+				if (sessionCookie = null){
+					alert('Request forgery detected');
+				}else{
+					document.getElementById(event_id).remove();
+				}
+			}
+			});
+			$("#editevent-dialog").dialog( "close" );
+
+		}
+	
+		// update calendar data
+		function updateCalendar(){
+			// remove all the button events 
+			var btnNodes = document.getElementsByTagName("button");
+			while(btnNodes.length>0) {
+				btnNodes[0].remove();
+			}
+
+			$("#year a span").text(currentMonth.year);
+			$("#month a span").text(mon_header[currentMonth.month]);
+			var weeks = currentMonth.getWeeks();
+			for (i=0;i<row_num;i++){
+				presentWeek = currentMonth.getWeeks()[i];			
+				for(j=0;j<col_num;j++){
+					var ind = presentWeek.getDates()[j].getDate();
+					var inm = presentWeek.getDates()[j].getMonth(); 
+					document.getElementsByClassName("row")[i+1].children[j].getElementsByTagName("span")[0].innerText = ind;
+					document.getElementsByClassName("row")[i+1].children[j].id =  String(inm)+String(ind);	
+					if(document.getElementById("username")!=null){
+						vieweventAjax(inm,ind);		
+					}
+				}	
+			}
+			
+
+			$('#sharecard input:checkbox').each(function(){
+				if($(this).is(':checked')){
+					viewFc($(this).parent().text());
+				}
+			});
+
+			}
+		
+		$("#sharefc").click(function(){
+			// alert("You are sharing your fullcalendar to your friend");
+			showSharefc();
+			
+		});
+		// add checkbox lists listeners
+		$(document).on('change', '#sharecard input:checkbox', function() {
+			var ischecked= $(this).is(':checked');
+			if(!ischecked){
+				$("."+$(this).parent().text()).remove();
+				// alert('uncheckd ' + $(this).parent().text());
+			}else{
+				viewFc($(this).parent().text());
+				// alert('checkd ' + $(this).parent().text());
+			}
+		});
+		
+		$(document).on('change', '#filterevent select', function() {
+			var selectedVal = $(this).val();
+			$("#presentation .gridcell button").hide();
+			var eventsbtn = document.getElementsByName(selectedVal);
+			for(var i=0;i<eventsbtn.length;i++){
+				eventsbtn[i].style.display="block";
+			}
+			// console.log(selectedVal);
+			
+		});
+
+		// view others fullcalendar
+		function viewFc(usr){
+			const data = { 'sender': usr};
+			
+			fetch('viewfc_ajax.php',{
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers: { 'content-type': 'application/json' }
+
+			})
+			.then(response => response.json())
+			.then(alldata=>{
+				if(alldata.success){
+					setCookie(alldata.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+						var data = alldata.events;
+						// console.log(data);
+						if(data.length>0){
+						$("#presentation .gridcell").each(function(){
+							for(var i=0;i<data.length;i++){
+							// console.log($(this).attr('id'));
+							var jsonDate = new Date(data[i].date);
+							var jd = jsonDate.getDate();
+							var jy = jsonDate.getFullYear();
+							var jm = jsonDate.getMonth(); 
+							if ((jy==y)&&($(this).attr('id')==String(jm)+String(jd))){// this year gridcell month and date
+								const newEvent= document.createElement("button");  // creates a node with the tag name button
+								newEvent.appendChild(document.createTextNode(data[i].title));
+								newEvent.setAttribute("id", data[i].event_id);
+								newEvent.setAttribute("name", data[i].tag);
+								newEvent.setAttribute("class",data[i].owner);
+								newEvent.setAttribute("style", "background:#F4511E");
+								document.getElementById($(this).attr('id')).appendChild(newEvent);
+								}
+
+								}
+
+						});
+			
+						}
+					}
+				}
+			})
+		}
+
+		// update share fc lists (when login update)
+		function editshareAjax(e){
+			let fcAddtag = $("#sharefc-dialog .addedTag"); // Get the password from the form
+			let friends = new Set();
+			if(fcAddtag.length>0){
+				for (var i = 0; i < fcAddtag.length; i++) {
+					friends.add(fcAddtag[i].id); 
+			}
+			}
+			//  console.log(Array.from(friends));
+			 const data = {"friend": Array.from(friends)};
+
+			 fetch("editshare_ajax.php",{
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers: { 'content-type': 'application/json' }
+			 }).then(response=>response.json())
+			 .then(data => {
+				//  console.log(data.success);
+				 if(data.success){
+					setCookie(data.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+						$("#sharefc-dialog").dialog( "close" );
+					}
+				 }
+				 else{
+					//  console.log(data.message);
+			 }
+			}
+			 );
+			
+		}
+
+
+		// view share lists
+		function viewshareAjax(){
+			fetch("viewshare_ajax.php",{
+				method:"POST",
+				headers: { 'content-type': 'application/json' }
+			}).then(response=>response.json())
+			.then(alldata=>{
+				var data = alldata.friends;
+				
+				if(alldata.success){
+					setCookie(data.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+				if(data.length!=0){
+					for (var i = 0; i<data.length;i++) {
+					const newFriend= document.createElement("li");  // creates a node with li
+					newFriend.appendChild(document.createTextNode(data[i].receiver));
+					newFriend.setAttribute("class", "addedTag");
+					newFriend.setAttribute("id",data[i].receiver);
+					const newSpan = document.createElement("span");
+					newSpan.appendChild(document.createTextNode("close"));
+					newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+					newSpan.setAttribute("style", "font-size:12px;");
+					newFriend.appendChild(newSpan);
+					$("#sharefc-dialog #sharefc-input").parent().prepend(newFriend);
+
+					}
+					}
+					}
+				}
+			});
+		}
+
+		$("#addevent").click(function() {
+			showAddevent();
+		});
+		
+
+
+		// add select option for both addevent-dialog and editevent-dialog
+		addOption();
+
+		function  addOption(){
+			const halfhr = 30;
+
+			for(var i = 0; i < 48; i ++){
+				hours = Math.floor(i/2);
+				minutes = i % 2 * 30;
+				if (hours < 10){
+					hours = '0' + hours; // adding leading zero
+				}
+				if (minutes < 10){
+					minutes = '0' + minutes; // adding leading zero
+				}
+				$('#ae-timepicker').append($('<option></option>')
+					.text(hours + ':' + minutes)); 
+				$('#ee-timepicker').append($('<option></option>')
+					.text(hours + ':' + minutes)); 
+				}
+				
+		}	
+
+		
+		// add event dialog
+		function showAddevent(){
+			$("#addevent-dialog .addedTag").remove();
+
+			var datevalid = false;
+			$("#addevent-dialog").dialog({          
+				width: 350,
+				height: 500,
+				modal: true,
+				open: function(){
+					$("#ae-datepicker").datepicker();
+					$( "#ae-timepicker" )
+						.selectmenu()
+						.selectmenu( "menuWidget" )
+						.addClass( "overflow" );	
+
+				},
+				buttons: {
+				Save: function(){
+					$("#ae-addcoworker").val().length
+					if(datevalid){
+						addeventAjax();
+					}
+				}
+				},
+
+			close: function() {
+				$('#addevent-dialog').trigger("reset");;
+			}
+			});
+			
+			$("#ae-datepicker").on('change',function(){
+				if(checkRegexp($("#ae-datepicker"),/^(0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])[- /.](19|20)\d\d$/,"Date may consist of mm/dd/yyyy.")){
+						datevalid=true;
+					}
+					// alert(datevalid);
+			});
+
+			coworkers = new Set();
+			$("#addevent-dialog .tags").on("click","span",function(e){
+				$(this).parent().remove();
+				coworkers.delete($(this).parent().attr('id'));
+			});
+
+
+			$("#addevent-dialog #ae-addcoworker").blur(
+				function(e){
+					var coworkersvalid =false;
+					if($("#ae-addcoworker").val().length>0){
+						if(checkLength($("#ae-addcoworker"),"coworkers", 3, 16)&&checkRegexp($("#ae-addcoworker"),/^[0-9a-zA-Z]+$/,"Coworkers may consist of a-zA-Z and 0-9.")){
+						coworkersvalid=true;
+					}}
+
+					if((!coworkers.has($(this).val()))&&($(this).val().length!=0)&&(coworkersvalid)){
+						// add new coworker
+						coworkers.add($(this).val());
+						const newCoworker= document.createElement("li");  // creates a node with li
+						newCoworker.appendChild(document.createTextNode($(this).val()));
+						newCoworker.setAttribute("class", "addedTag");
+						newCoworker.setAttribute("id",$(this).val());
+						const newSpan = document.createElement("span");
+						newSpan.appendChild(document.createTextNode("close"));
+						newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+						newSpan.setAttribute("style", "font-size:12px;");
+						newCoworker.appendChild(newSpan);
+						$("#addevent-dialog #ae-addcoworker").parent().prepend(newCoworker);
+						$("#addevent-dialog #ae-addcoworker").val("");
+					}else{
+						$("#addevent-dialog #ae-addcoworker").val("");
+					}
+				}
+			);
+    	}
+
+		// share your calendar to a new friend
+		function showSharefc(){
+			$("#sharefc-dialog .addedTag").remove();
+			var friendvalid =false;
+
+			viewshareAjax();			
+			$("#sharefc-dialog").dialog({          
+				width: 350,
+				height: 300,
+				modal: true,
+				buttons: {
+				Save: 
+					editshareAjax
+				},
+				
+			close: function() {
+				$('#sharefc-dialog').trigger("reset");				
+			}
+			});
+			$("#sharefc-input").on('change',function(){
+				if(checkLength($("#sharefc-input"),"friendname", 3, 16)&&
+					checkRegexp($("#sharefc-input"),/^[0-9a-zA-Z]+$/,"friendname may consist of a-zA-Z and 0-9.")){
+						friendvalid=true;
+					}
+					// alert(friendvalid);
+			});
+			let friends = new Set();
+			$("#sharefc-dialog .tags").on("click","span",function(e){
+				$(this).parent().remove();
+				friends.delete($(this).parent().attr('id'));
+			});
+
+
+			$("#sharefc-dialog #sharefc-input").blur(
+				function(e){
+
+					var friendsvalid =false;
+					if($("#sharefc-input").val().length>0){
+						if(checkLength($("#sharefc-input"),"friends", 3, 16)&&checkRegexp($("#sharefc-input"),/^[0-9a-zA-Z]+$/,"Friends may consist of a-zA-Z and 0-9.")){
+							friendsvalid=true;
+					}}
+					if((!friends.has($(this).val()))&&($(this).val().length!=0)&&(friendsvalid)){
+						// add new coworker
+						friends.add($(this).val());
+						const newFriend= document.createElement("li");  // creates a node with li
+						newFriend.appendChild(document.createTextNode($(this).val()));
+						newFriend.setAttribute("class", "addedTag");
+						newFriend.setAttribute("id",$(this).val());
+						const newSpan = document.createElement("span");
+						newSpan.appendChild(document.createTextNode("close"));
+						newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+						newSpan.setAttribute("style", "font-size:12px;");
+						newFriend.appendChild(newSpan);
+						$("#sharefc-dialog #sharefc-input").parent().prepend(newFriend);
+						$("#sharefc-dialog #sharefc-input").val("");
+					}else{
+						$("#sharefc-dialog #sharefc-input").val("");
+					}
+				}
+			);
+		}
+
+		$("#signup").click(function() {
+			showSignup();
+		});
+
+
+		function showSignup(){
+			var usrvalid = false;
+			var pwdvalid = false;
+			$("#signup-dialog").dialog({          
+				width: 350,
+				minHeight: 400,
+				modal: true,
+				buttons: {
+				"Sign up": function(){
+					if(usrvalid&&pwdvalid){
+						signupAjax();
+					}
+				}
+			},
+			close: function() {
+				$('#signup-dialog').trigger("reset");;
+			}
+			
+			});
+			$("#signup-username").on('change',function(){
+
+				if(checkLength($("#signup-username"),"username", 3, 16)&&
+				checkRegexp($("#signup-username"),/^[0-9a-zA-Z]+$/,"Username may consist of a-zA-Z and 0-9.")){
+					usrvalid=true;
+				}
+				// alert(usrvalid);
+				
+			});
+			$("#signup-password").on('change',function(){
+
+			if(checkLength($("#signup-password"),"password", 3, 16)&&
+			checkRegexp($("#signup-password"),/^[0-9a-zA-Z]+$/,"Password may consist of a-z and 0-9.")){
+				pwdvalid=true;
+			}
+				// alert(pwdvalid);
+
+			});
+			
+    	}
+				
+		$("#login").click(function() {
+			showLogin();
+		});
+
+		function showLogin(){
+			var login_usrvalid = false;
+			var login_pwdvalid = false;
+			$("#login-dialog").dialog({          
+				width: 350,
+				height: 310,
+				modal: true,
+				buttons: {
+				"Log in": function(){
+					if(login_usrvalid&&login_pwdvalid){
+						loginAjax();
+					}
+				}
+
+			},			
+			close: function() {
+				$('#login-dialog').trigger("reset");;
+			}
+
+			});
+			$("#login-username").on('change',function(){
+				if(checkLength($("#login-username"),"username", 3, 16)&&
+				checkRegexp($("#login-username"),/^[0-9a-zA-Z]+$/,"Username may consist of a-zA-Z and 0-9.")){
+					login_usrvalid=true;
+				}
+				// alert(login_usrvalid);
+			});
+			$("#login-password").on('change',function(){				
+				if(checkLength($("#login-password"),"password", 3, 16)&&
+				checkRegexp($("#login-password"),/^[0-9a-zA-Z]+$/,"Password may consist of a-zA-Z and 0-9.")){
+					login_pwdvalid=true;
+				}
+				// alert(login_pwdvalid);
+			});
+    	}
+		
+		function addeventAjax(e) {
+			const event = document.getElementById("ae-event").value; // Get the username from the form
+			const datepicker = document.getElementById("ae-datepicker").value; // Get the password from the form
+			const timepicker = document.getElementById("ae-timepicker").value; // Get the password from the form
+			const tag = document.getElementById("ae-tag").value; // Get the password from the form
+			var aeAddtag = $("#addevent-dialog .addedTag"); // Get the password from the form
+			var coworkers = new Set();
+
+			if(aeAddtag.length>0){
+				for (var i = 0; i < aeAddtag.length; i++) {
+				coworkers.add(aeAddtag[i].id); 
+
+			}
+			}
+			// console.log(coworkers);
+			aeDate = new Date(datepicker);
+			ay = aeDate.getFullYear();
+			am = aeDate.getMonth();
+			ad = aeDate.getDate();
+
+			// alert(username);
+			// Make a URL-encoded string for passing POST data:
+			const data = { 'event': event, 'datepicker': datepicker,'timepicker': timepicker,'tag':tag,'coworkers':Array.from(coworkers)};
+	
+			fetch("addevent_ajax.php", {
+					method: 'POST',
+					body: JSON.stringify(data),
+					headers: { 'content-type': 'application/json' }
+				}).then(response => response.json())
+				.then(alldata => {
+					// this year and this month? if add event directly : ... get page year and month from headers compare to add 
+					// formate datepicker dialog
+					// console.log(alldata.success);
+					if ((document.getElementById(String(am)+String(ad))!=null)&&alldata.success){ // if this year and this month, find element by id: am+ad
+						setCookie(alldata.token); //settoken
+						if (sessionCookie = null){
+							alert('Request forgery detected');
+						}else{// add event within page 
+						const newEvent= document.createElement("button");  // creates a node with the tag name button
+						newEvent.appendChild(document.createTextNode(event));
+						max_event_id = alldata.max_event_id;
+						// console.log(max_event_id);
+						newEvent.setAttribute("id",max_event_id);
+						newEvent.setAttribute("title", tag);
+
+						document.getElementById(String(am)+String(ad)).appendChild(newEvent);
+						$("#addevent-dialog").dialog( "close" );
+
+					}
+				}else{
+					updateTips("Failed to add due to database error. Please try again!");
+				}
+				});
+
+				
+			}
+		
+		function vieweventAjax(inm,ind){
+			fetch("viewevent_ajax.php", {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' }
+			})
+			.then(response => response.json()).then(alldata =>{
+				if (alldata.success){
+					setCookie(alldata.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+				max_event_id = alldata.max_event_id; //update max_event_id
+				// console.log(alldata.success);
+				var data = alldata.events;
+				if(data.length>0){
+					for(var i=0; i<data.length; i++) { 
+						var jsonDate = new Date(data[i].date);
+						var jd = jsonDate.getDate();
+						var jy = jsonDate.getFullYear();
+						var jm = jsonDate.getMonth(); 
+						if ((jm==inm) && (jy==y) && (jd==ind)){// this year gridcell month and date
+							const newEvent= document.createElement("button");  // creates a node with the tag name button
+							newEvent.appendChild(document.createTextNode(data[i].title));
+							newEvent.setAttribute("id", data[i].event_id);
+							newEvent.setAttribute("name", data[i].tag);
+							newEvent.setAttribute("class","editevent");
+							document.getElementById(String(inm)+String(ind)).appendChild(newEvent);
+
+						}
+					}
+					$("#presentation .gridcell button").hide();
+					// selectedVal
+					var selectedVal = $('#filterevent select').val();
+					var eventsbtn = document.getElementsByName(selectedVal);
+					for(var i=0;i<eventsbtn.length;i++){
+						eventsbtn[i].style.display="block";
+					}
+					// console.log(selectedVal);
+				}
+
+			
+
+			} 
+				}});
+
+		}
+
+		// show on editevent dialog by each
+		function viewEachAjax(e){
+
+			
+			var isowner=false;
+			const data = { 'id': e.attr('id')};
+			fetch("vieweach_ajax.php",{
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers: { 'content-type': 'application/json' }
+			}).then(response => response.json())
+			.then(alldata =>{
+				if(alldata.success){
+					setCookie(alldata.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+					var data = alldata.events;
+					var coworkers = alldata.coworkers;
+					isowner = alldata.isowner;
+					// console.log(isowner);
+					// console.log(data);
+					// console.log(alldata.username);
+					// console.log(alldata.owner);
+
+					var newCoworkers = new Set();
+					// console.log(coworkers);
+
+					for(var i=0; i<coworkers.length;i++){
+						newCoworkers.add(coworkers[i].editor);
+
+					}
+
+					newCoworkers.delete($("#username span").text());
+					if(data.length>0){
+						document.getElementById("ee-event").value = data[0].title; // Set the event in the form
+						document.getElementById("ee-datepicker").value =$.datepicker.formatDate("m/d/yy",new Date(data[0].date)); // Set the datepicker in the form
+						const time = data[0].time; // Get the time from the form
+						document.getElementById("ee-timepicker").value  = time.substring(0,2)+":"+time.substring(2,4); // Set the timepicker in the form
+						document.getElementById("ee-tag").value = data[0].tag; // Set the tag in the form
+					}
+					if(isowner){ // check if owner, if not editor cannot edit the events;
+						$("#editevent-dialog .tags").show();
+						$("#editevent-dialog .tags").prev().show();
+
+						if(newCoworkers.length!=0){
+						for (var coworker of newCoworkers) {
+						const newCoworker= document.createElement("li");  // creates a node with li
+						newCoworker.appendChild(document.createTextNode(coworker));
+						newCoworker.setAttribute("class", "addedTag");
+						newCoworker.setAttribute("id",coworker);
+						const newSpan = document.createElement("span");
+						newSpan.appendChild(document.createTextNode("close"));
+						newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+						newSpan.setAttribute("style", "font-size:12px;");
+						newCoworker.appendChild(newSpan);
+						$("#editevent-dialog #ee-addcoworker").parent().prepend(newCoworker);
+				
+						}
+					}
+					}
+				}
+			}
+
+			});
+
+		}
+	
+		
+		//token
+		let sessionCookie = null
+		function setCookie(cookie){
+    		sessionCookie = cookie
+		}
+
+		// login
+		function loginAjax(event) {
+			const username = document.getElementById("login-username").value; // Get the username from the form
+			const password = document.getElementById("login-password").value; // Get the password from the form
+			// alert(typeof(username));
+			// Make a URL-encoded string for passing POST data:
+			const data = { 'username': username, 'password': password };
+
+			fetch("login_ajax.php", {
+					method: 'POST',
+					body: JSON.stringify(data),
+					headers: { 'content-type': 'application/json' }
+					//        'Accept': 'application/json'
+				})
+				.then(response => response.json())
+				.then(alldata =>{
+				// console.log(data[0].sender);
+				if(alldata.success&&alldata.login_status){
+					setCookie(alldata.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+					$("#addevent").show(); //show addevent 
+					$("#sharefc").show(); //show sharefc 
+					$("#filterevent").show(); //show filterevent
+
+					var data = alldata.sender;
+					// console.log(data);
+					if(data.length>0){
+						$("#sharecard").show(); //show sharecard
+
+						for(var i=0;i<data.length;i++){
+						const newShare= document.createElement("li");  // creates a node with li
+						const newDiv = document.createElement("div");
+						const newInput = document.createElement("input");
+						newInput.setAttribute("type", "checkbox");
+						newDiv.appendChild(newInput);
+						newDiv.appendChild(document.createTextNode(data[i].sender));
+
+						newShare.appendChild(newDiv);
+
+						$("#sharecard-header").after(newShare);
+						}
+
+					}
+					var signupLi = $('#signup').parent();
+					$("#signup").remove();
+					const newA = document.createElement("a");
+					const newSpan = document.createElement("span");
+					newSpan.setAttribute("class","text");
+					newSpan.appendChild(document.createTextNode(username));
+					newA.setAttribute("id","username");
+					newA.appendChild(newSpan);
+					signupLi.append(newA);
+					var signupLi = $('#signup').parent();
+					$("#signup").remove();
+
+					var loginLi = $('#login').parent();
+					$("#login").remove();
+					const newB = document.createElement("a");
+					const nSpan = document.createElement("span");
+					nSpan.setAttribute("class","text");
+					nSpan.appendChild(document.createTextNode("Log out"));
+					newB.setAttribute("id","logout");
+					newB.appendChild(nSpan);
+					loginLi.append(newB);
+
+					updateCalendar();
+				}	
+				$("#login-dialog").dialog( "close" );
+
+				}else{
+					updateTips("Invalid username or passowrd");
+				}
+				});
+		
+		}
+
+
+
+		// logout
+		$(document).on('click', '#logout', function() {logoutAjax()});
+
+
+		function logoutAjax(){
+			fetch("logout_ajax.php",{
+				method: 'POST',
+				headers: { 'content-type': 'application/json' }
+			}).then(response => response.json())
+			.then(alldata =>{
+				if(alldata.success){
+					setCookie(alldata.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+					var usernameLi = $('#username').parent();
+					$("#username").remove();
+					$("#addevent").hide();
+					$("#sharefc").hide();
+					$("#filterevent").hide();
+					$("#sharecard-header").nextAll().remove();
+					$("#sharecard").hide();
+					const newA = document.createElement("a");
+					const newSpan = document.createElement("span");
+					newSpan.setAttribute("class","text");
+					newSpan.appendChild(document.createTextNode("Sign up"));
+					newA.setAttribute("id","signup");
+					newA.appendChild(newSpan);
+					usernameLi.append(newA);
+					$(document).on('click', '#signup', function() {showSignup()});
+
+					var logoutLi = $('#logout').parent();
+					$("#logout").remove();
+					const newB = document.createElement("a");
+					const nSpan = document.createElement("span");
+					nSpan.setAttribute("class","text");
+					nSpan.appendChild(document.createTextNode("Log in"));
+					newB.setAttribute("id","login");
+					newB.appendChild(nSpan);
+					logoutLi.append(newB);
+					$(document).on('click', '#login', function() {showLogin()});
+					// reset all the var variables again to avoid errors;
+					date = new Date();
+					d = date.getDate();
+					m = date.getMonth(); // update
+					y = date.getFullYear(); // update
+					
+					currentWeek = new Week(date); 
+					currentMonth = new Month(y,m); // update
+					max_event_id = 0;
+					updateCalendar();
+				}
+			}
+				});
+		}
+
+		function updateTips( t ) {
+			 $(".validateTips").text( t )
+				.addClass( "ui-state-highlight" );
+			setTimeout(function() {
+				$(".validateTips").removeClass( "ui-state-highlight", 1500 );
+			}, 500 );
+		}
+
+		function checkLength( o, n, min, max ) {
+			if ( o.val().length > max || o.val().length < min ) {
+				o.addClass( "ui-state-error" );
+				updateTips( "Length of " + n + " must be between " +
+					min + " and " + max + "." );
+				return false;
+			} else {
+				o.removeClass("ui-state-error");
+				updateTips("");
+				return true;
+			}
+		}
+
+		function checkRegexp( o, regexp, n ) {
+			if ( !( regexp.test( o.val() ) ) ) {
+				o.addClass( "ui-state-error" );
+				updateTips( n );
+				return false;
+			} else {
+				o.removeClass("ui-state-error");
+				updateTips("");
+				return true;
+			}
+		}
+
+		function signupAjax(event) {
+			const username = document.getElementById("signup-username").value; // Get the username from the form
+			const password = document.getElementById("signup-password").value; // Get the password from the form
+
+
+			// Make a URL-encoded string for passing POST data:
+            const data = { 'username': username, 'password': password };
+                
+            fetch("signup_ajax.php", {
+            method: 'POST',
+            body: JSON.stringify(data),
+			headers: { 'content-type': 'application/json' }
+			}).then(response=>response.json())
+			.then(data => {
+				if (data.success){
+					setCookie(data.token); //settoken
+					if (sessionCookie = null){
+						alert('Request forgery detected');
+					}else{
+					// console.log(data.success ? "You've been signed up!" : `You were not signed up ${data.message}`);
+					$("#signup-dialog").dialog( "close" );
+					}
+					}else{
+						updateTips("Username already exists");
+					}
+
+				});
+
+		}
+
+		});
+
+    </script>
+</head>
+<body>
+		<header>
+			<nav>
+				<ul>
+					<li>
+						<a href="" style="color: #0B8043">
+							<span class="material-icons nav-icons" >calendar_today</span>
+							<span class="text">
+							Calendar
+							</span>
+						</a>
+					</li>
+					<li>
+						<a href="" id="today" >
+							<span class="text" style="font-weight: bold;">
+								TODAY
+							</span>
+						</a>
+					</li>
+					<li>
+						<a id="premonth" title="Previous Month">
+							<span class="material-icons nav-icons">keyboard_arrow_left
+							</span>
+						</a>
+					</li>
+					<li>
+						<a id="nextmonth" title="Next Month">
+							<span class="material-icons nav-icons">keyboard_arrow_right
+							</span>
+
+						</a>
+					</li>
+					<li id="month">
+							<a>
+								<span class="text">
+								</span>
+							</a>
+					</li>
+					<li id="year">
+							<a>
+								<span class="text">
+
+								</span>
+							</a>
+					</li>
+					<li style="float:right;">
+							<a id="login">
+								<span class="text">
+										Log in
+								</span>
+							</a>
+					</li>
+					<li style="float:right;">			
+						<a id="signup">
+							<span class="text">
+									Sign up 
+							</span>
+						</a>
+					</li>
+					
+					<li style="float:right;">			
+							<a id="addevent" title="Add New Event">
+									<span class="material-icons nav-icons">add
+									</span>
+							</a>
+					</li>
+					<li style="float:right;">
+						<a id = "sharefc" title="Share your calendar">
+							<span  class="material-icons nav-icons">
+								playlist_add</span>
+						</a>
+					</li>
+					<li style="float:right;">
+						<div id="filterevent" title="filter your calendar">
+						<select >
+							<option value="default">default</option>
+							<option value="recreation" >recreation</option>
+							<option value="work" >work</option>
+							<option value="other">other</option>
+						</select>
+						</div>
+
+					</li>
+				</ul>
+			</nav>
+		</header>
+		<form id="addevent-dialog" class="dialog" title="Add new event">
+			<p class="validateTips">All form fields are required.</p>
+
+			<fieldset>
+				<label for="ae-event">Event</label>
+				<input type="text" id="ae-event"  class="text ui-widget-content ui-corner-all">    
+				<label for="ae-datepicker">Date</label>
+				<input type="text" id="ae-datepicker"  class="text ui-widget-content ui-corner-all">
+				<label for="ae-tag">Tag</label>
+				<select id="ae-tag">
+						<option value="default">default</option>
+						<option value="recreation" >recreation</option>
+						<option value="work" >work</option>
+						<option value="other">other</option>
+				</select>
+				<label>Coworkers</label>
+				<ul class="tags">
+
+
+			 		<li class="tagAdd taglist">  
+						<input type="text" id="ae-addcoworker">
+					</li>
+				 </ul>
+				<label for="ae-timepicker">Time</label>
+				<select id="ae-timepicker">
+				</select>
+				<input type="submit" tabindex="-1" style="position:absolute; top:-200px">
+			</fieldset>
+		</form>
+		<form id="sharefc-dialog" class="dialog" title="Share calendar to a new friend">
+			<p class="validateTips">All form fields are required.</p>
+
+			<fieldset>
+
+				<label>Friends</label>
+				<ul class="tags">
+
+			 		<li class="tagAdd taglist">  
+						<input type="text" id="sharefc-input">
+					</li>
+				 </ul>
+
+				<input type="submit" tabindex="-1" style="position:absolute; top:-200px">
+			</fieldset>
+		</form>
+		  
+
+		<form id="editevent-dialog" class="dialog" title="Edit your event">
+				<p class="validateTips">All form fields are required.</p>
+
+			<fieldset>
+				<label for="ee-event">Event</label>
+				<input type="text" id="ee-event"  class="text ui-widget-content ui-corner-all">    
+				<label for="ee-datepicker">Date</label>
+				<input type="text" id="ee-datepicker"  class="text ui-widget-content ui-corner-all">
+				<label for="ee-tag">Tag</label>
+				<select id="ee-tag" >
+						<option value="default" id="default">default</option>
+						<option value="recreation" id="recreation">recreation</option>
+						<option value="work" id="work">work</option>
+						<option value="other" id="other">other</option>
+				</select>				
+				<label>Coworkers</label>
+				<ul class="tags">
+
+			 		<li class="tagAdd taglist">  
+						<input type="text" id="ee-addcoworker">
+					</li>
+				 </ul>
+				<label for="ee-timepicker">Time</label>
+				
+				<select id="ee-timepicker">
+				</select>
+				<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+
+			</fieldset>
+		</form>
+		
+		<form id="signup-dialog" class="dialog" title="Create new user">
+			<p class="validateTips">All form fields are required.</p>
+
+			<fieldset>
+				<label for="signup-username">Username</label>
+				<input type="text" name="signup-username" id="signup-username" class="text ui-widget-content ui-corner-all">
+				<label for="signup-password">Password</label>
+				<input type="password" name="signup-password" id="signup-password" class="text ui-widget-content ui-corner-all">
+				<!-- Allow form submission with keyboard without duplicating the dialog button -->
+				<input id="signup_btn" type="submit" tabindex="-1" style="position:absolute; top:-200px">
+			</fieldset>
+		</form>
+		
+
+		<form  id="login-dialog"  class="dialog" title="Log in">
+			<p class="validateTips">All form fields are required.</p>
+			
+			<fieldset>
+				<input type="text" id="login-username" placeholder="Username"  class="text ui-widget-content ui-corner-all"/>
+				<input type="password" id="login-password" placeholder="Password"  class="text ui-widget-content ui-corner-all"/>
+				<input id="login_btn" type="submit" tabindex="-1" style="position:absolute; top:-200px">
+			</fieldset>
+		</form>
+		<div id="sharecard" style="float:left;" >
+				<ul  style="border-bottom:1px;">
+					<li id="sharecard-header">
+						<div><span>Friend's Calendar</span></div>
+					</li>
+
+				</ul>
+
+
+		</div>
+        <div id='wrap'>
+
+			<div id='calendar'>
+				<div id='columnheader' class='row'>
+
+				</div>
+				<div id='presentation'>
+					
+				</div>
+			</div>
+
+		</div>
+
+
+	</body>
+</html>

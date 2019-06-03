@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Kit Chat</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+    var socketio = io.connect();
+    var connected = false;
+    var isTyping = false;
+    var addOpen = false;
+    var editOpen = false;
+    var curInput = "";
+    var typingTimer;
+  
+
+    $( document ).ready(function() {
+
+
+    // require login to view 
+    $("html").attr("style","height:100%");
+    $("#addchatroom").hide(); 
+    $(".container").hide(); 
+
+    // show page only when user login
+    $("#login").click(function(e) {
+        e.preventDefault();  // !important: to avoid reloading page
+        showLogin();
+    });
+    function showLogin(){
+
+        $("#login-dialog").dialog({          
+            width: 350,
+            height: 250,
+            modal: true,
+            buttons: {
+                "Log in": function(e){
+                    e.preventDefault(); 
+                    const username = document.getElementById("login-username").value.trim(); // Get the username from the form
+                    logIn(username);
+                }
+            },			
+            close: function() {
+                // connected = true;
+                $('.validateMsg').empty();
+                $('#login-dialog').trigger("reset");;
+            }
+        });
+    }
+    
+    // add option
+    function  addOption(clients,select_id){
+
+        for(var i = 0; i < clients.length; i ++){
+            if(i==0){
+                $(select_id).append("<option></option>");
+            }
+            $(select_id).append($('<option></option>')
+                .text(clients[i])); 	
+        }	
+        
+    }
+
+
+    // add chatroom dialog
+    function showAddchatroom(){
+        addOpen = true;
+        var blacklist = new Set();
+
+        $("#addchatroom-dialog").dialog({          
+            width: 350,
+            height: 450,
+            modal: true,
+            open: function(){
+                $( "#member_select" )
+                        .selectmenu({
+                            change:function(event){
+                                const selected_member = $(this).val().trim();
+                                const onlineusers = $('#users div a').map(function(){
+                                                    return $.trim($(this).text());
+                                                    }).get(); // map online users to array
+                                console.log(onlineusers);
+                                console.log(selected_member);
+                                if(selected_member!=""){
+                                    if(onlineusers.includes(selected_member)&&blacklist.has(selected_member)==false){
+                                    blacklist.add(selected_member); // add in set 
+                                    const newBlacklist= document.createElement("li");  // creates a node with li
+                                    newBlacklist.appendChild(document.createTextNode(selected_member));
+                                    newBlacklist.setAttribute("class", "addedTag");
+                                    // newCoworker.setAttribute("id",$(this).val());
+                                    const newSpan = document.createElement("span");
+                                    newSpan.appendChild(document.createTextNode("close"));
+                                    newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+                                    newSpan.setAttribute("style", "font-size:12px;");
+                                    newBlacklist.appendChild(newSpan);
+                                    $("#addchatroom-dialog #ac-addblacklist").parent().prepend(newBlacklist);
+                                    // $("#addchatroom-dialog #ac-addblacklist").val("");
+                                }else{
+                                    updateMsg("failed to add member to blacklist; please try again");
+                                }
+                            
+                                }
+                               
+                            }
+                        })
+                        .selectmenu( "menuWidget" )
+                        .addClass( "overflow" );	
+            },
+      
+            buttons: {
+            Save: function(e){
+                e.preventDefault(); 
+                // check whether the room is created 
+                if($('#roomname_input').val().trim()!=""){
+                    socketio.emit("add_chatroom",$('#roomname_input').val().trim(),$('#password_input').val().trim(),Array.from(blacklist),$('#description_input').val().trim()); //only array can be transferred; !important set cannot
+                    addOpen = false;
+                    $(".addedTag").remove();
+                    // $('.validateMsg').empty();
+                    // $('#addchatroom-dialog').dialog("close"); 
+                }else{
+                    updateMsg("Failed to add room");
+                }
+            }
+            },
+        close: function() {
+            $('#addchatroom-dialog').trigger("reset");;
+        }
+        });
+        
+        $(document).on("click",".tagRemove",function(e){
+            const delblacklist = $(this)
+                                    .parent()
+                                    .clone()    //clone the element
+                                    .children() //select all the children
+                                    .remove()   //remove all the children
+                                    .end()  //again go back to selected element
+                                    .text().trim();
+            console.log(delblacklist);
+            blacklist.delete(delblacklist);
+            $(this).parent().remove();
+            console.log(blacklist);
+        });
+
+    }
+
+    // edit chatroom dialog
+    function showEditchatroom(roomname,roompwd,blacklist,desc){
+        editOpen = true;
+
+        if(!isNaN(roompwd)){
+            document.getElementById("edit_password_input").value = roompwd; //Get the password from server
+        }
+        document.getElementById("edit_description_input").value = desc; //Get the description from server
+        document.getElementById("edit_roomname_input").value = roomname;//Get the roomname from server
+        var blacklist_set = new Set(blacklist);
+
+        //Get the blacklist from server
+        if(blacklist_set.size>0){ // not length !important
+            console.log("blacklist is not empty");
+            blacklist_set.forEach(function(newBlacklist){
+                console.log(newBlacklist);
+                const newLi= document.createElement("li");  // creates a node with li
+                newLi.appendChild(document.createTextNode(newBlacklist));
+                newLi.setAttribute("class", "addedTag");
+                const newSpan = document.createElement("span");
+                newSpan.appendChild(document.createTextNode("close"));
+                newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+                newSpan.setAttribute("style", "font-size:12px;");
+                newLi.appendChild(newSpan);
+                $("#editchatroom-dialog #ec-addblacklist").parent().prepend(newLi);
+            });
+        }
+        prev_roomname = roomname;
+        $("#editchatroom-dialog").dialog({          
+            width: 350,
+            height: 450,
+            modal: true,
+            open: function(){
+                $( "#edit_member_select" )
+                        .selectmenu({
+                            change:function(event){
+                                const selected_member = $(this).val().trim();
+                                const onlineusers = $('#users div a').map(function(){
+                                                    return $.trim($(this).text());
+                                                    }).get(); // map online users to array
+                                console.log(onlineusers);
+                                console.log(selected_member);
+                                if(selected_member!=""){
+                                    if(onlineusers.includes(selected_member)&&blacklist_set.has(selected_member)==false){
+                                    blacklist_set.add(selected_member); // add in set 
+                                    const newBlacklist= document.createElement("li");  // creates a node with li
+                                    newBlacklist.appendChild(document.createTextNode(selected_member));
+                                    newBlacklist.setAttribute("class", "addedTag");
+                                    const newSpan = document.createElement("span");
+                                    newSpan.appendChild(document.createTextNode("close"));
+                                    newSpan.setAttribute("class", "material-icons nav-icons tagRemove");
+                                    newSpan.setAttribute("style", "font-size:12px;");
+                                    newBlacklist.appendChild(newSpan);
+                                    $("#editchatroom-dialog #ec-addblacklist").parent().prepend(newBlacklist);
+                                }else{
+                                    updateMsg("failed to add member to blacklist; please try again");
+                                }
+                                }
+                               
+                            }
+                        })
+                        .selectmenu( "menuWidget" )
+                        .addClass( "overflow" );	
+            },
+
+            buttons: {
+            Save: function(e){
+                e.preventDefault(); 
+                // check whether the room is created 
+                var roomname = document.getElementById("edit_roomname_input").value.trim();
+                var roompwd = document.getElementById("edit_password_input").value.trim();
+                var desc = document.getElementById("edit_description_input").value.trim();
+                // console.log(blacklist_set);                           
+                socketio.emit("edit_chatroom",prev_roomname,roomname,roompwd,Array.from(blacklist_set),desc); //only array can be transferred; !important set cannot
+                $(".addedTag").remove();
+                $('.validateMsg').empty();
+                editOpen = false;
+                $('#editchatroom-dialog').dialog("close"); 
+            }
+            },
+        close: function() {
+            $('#editchatroom-dialog').trigger("reset");;
+        }
+        });
+
+        
+        $(document).on("click",".tagRemove",function(e){
+        const delblacklist = $(this)
+                                .parent()
+                                .clone()    //clone the element
+                                .children() //select all the children
+                                .remove()   //remove all the children
+                                .end()  //again go back to selected element
+                                .text().trim();
+        blacklist_set.delete(delblacklist);
+        $(this).parent().remove();
+    });
+      
+    }
+
+
+    function logIn(usr){
+        // connected = true;
+        socketio.emit("add_client",{username:usr});
+    }
+
+    // update validate message on html to client from server
+    function updateMsg(msg) {
+        $(".validateMsg").text(msg)
+        .addClass( "ui-state-highlight" );
+        setTimeout(function() {
+            $(".validateMsg").removeClass( "ui-state-highlight", 1500 );
+        }, 500 );
+    }
+
+    // send message to server
+    function sendMessage(){
+        // get class name
+        var msgtype = document.getElementsByName("to")[0].className;
+        var to = document.getElementsByName("to")[0].id;
+        var msg = document.getElementById("message_input").value;
+
+        document.getElementById("message_input").value = ""; // clear out
+        if(msgtype=="room"){
+            socketio.emit("public_message", to,msg);
+
+        }else{
+            socketio.emit("private_message",to,msg);
+        }
+    }
+
+    // listen to typing event by setTimeout function and check message_input change
+    function listenTyping(typing_tic,time_length){
+        var prevInput = $("#message_input").val(); // to avoid keyup and keydown bug by input ischange flag since if you type too fast, or even press one key for a long time, the keydown activity will go wrong
+        setTimeout(function(){ 
+            var typing_toc = (new Date()).getTime();
+            const unchange = prevInput == curInput;
+            if((typing_toc-typing_tic)>time_length && isTyping && unchange ){ // if client doesn't do anything, emit stop_typing
+                isTyping = false;
+                socketio.emit("stop_typing");
+            }
+        },time_length);
+    }
+    
+    // receive login message from server
+    socketio.on("loginmsg_to_client",function(msg){
+        if(msg){
+            // after login, page changes
+            $("html").removeAttr("style"); 
+            $(".container").show(); 
+            $("#addchatroom").show(); 
+            $("body").removeClass("welcomebg");
+            const username = document.getElementById("login-username").value.trim(); // Get the username from the form
+            var loginLi = $('#login').parent();
+            $("#login").remove();
+            const newA = document.createElement("a");
+            const newSpan = document.createElement("span");
+            newSpan.setAttribute("class","text");
+            newSpan.appendChild(document.createTextNode(username));
+            newA.setAttribute("id","username");
+            newA.appendChild(newSpan);
+            loginLi.append(newA);
+            connected = true;
+            $("#login-dialog").dialog( "close" );
+        }else{
+            // update validate tips
+            updateMsg("Duplicated username! Please try again!");
+        }
+    });
+
+    // whenever there is new user, add it to online user list card 
+    socketio.on("add_client",function(data){
+        const newDiv = document.createElement("div");
+        newDiv.appendChild(document.createTextNode(data['username']));
+        $("#users").append(newDiv);
+        socketio.emit('call_roomlist');
+    });
+
+    // receive message from server
+    socketio.on("message_to_client",function(data) {
+        const color = "color:"+ data.color + ";";
+        console.log("We are receiving msg from server");
+        const newDiv = document.createElement("div");
+        newDiv.setAttribute("class","msgbox");
+        const newSpanusr = document.createElement("span");
+        newSpanusr.appendChild(document.createTextNode("account_circle"));
+        newSpanusr.setAttribute("class","material-icons nav-icons");
+        const newSpanmsg = document.createElement("span");
+        newSpanmsg.appendChild(document.createTextNode(":"+data['message']));
+        const newA = document.createElement("a"); 
+        newA.setAttribute("style","font-size:120%;"+color);
+        newA.appendChild(document.createTextNode(data["username"]));
+        newDiv.appendChild(newSpanusr);
+        newDiv.appendChild(newA);
+        newDiv.appendChild(newSpanmsg);
+        $(".msgcontent").append(newDiv);
+    
+    });
+
+    // receive kick message from server
+    socketio.on("kick_to_client",function(room){
+        var toEle = document.getElementsByName("to")[0];
+        toEle.className = "room";
+        toEle.id = room;
+        document.getElementsByName("cur_group")[0].className = room;
+        toEle.getElementsByTagName("span")[0].innerText = "Chat Room("+room+")";
+        document.getElementsByName("cur_group")[0].children[0].innerText = "person";
+        socketio.emit("switch_chatroom",{roomname:room});
+    });
+    
+    // show current room list
+    socketio.on("show_roomlist",function(rooms){
+    const newApri = document.createElement("a");
+    newApri.setAttribute("class","material-icons nav-icons");
+    newApri.setAttribute("name","pwdEnter");
+    newApri.setAttribute("style","font-size:12px;");
+    newApri.appendChild(document.createTextNode("lock"));
+
+    const client = $("#username span").text(); // get current client
+    $("#rooms").empty();
+    $.each(rooms,function(roomname,room){
+        const isCreator = client == room.creator; // check if client is creator
+        const newDiv = document.createElement("div");
+        const newA = document.createElement("a");
+        newA.appendChild(document.createTextNode(roomname));
+        newA.setAttribute("id",roomname);
+        console.log(room);
+        if(room.isPrivate){
+            newA.setAttribute("name","pwdEnter");
+            newDiv.appendChild(newApri); // before 
+            newDiv.appendChild(newA); // after
+        }else{
+            newDiv.appendChild(newA);
+        }
+        if(isCreator){
+            const newAedit = document.createElement("a");
+            newAedit.setAttribute("class","material-icons nav-icons");
+            newAedit.setAttribute("name","editroom");
+            newAedit.setAttribute("style","font-size:12px; padding-left:10px;");
+            newAedit.appendChild(document.createTextNode("edit"));
+            newDiv.appendChild(newAedit);
+            //add delete icon
+            const newB = document.createElement("a");
+            newB.setAttribute("class","material-icons nav-icons");
+            newB.setAttribute("name","deleteroom");
+            newB.setAttribute("style","font-size:12px;");
+            newB.appendChild(document.createTextNode("close"));
+            newDiv.appendChild(newB);
+        }
+        $("#rooms").append(newDiv);
+    });
+    
+});
+
+
+    // show current room list
+    socketio.on("show_clientlist",function(clients){
+        $("#users").empty();
+        var clients_arr = new Array();
+        $.each(clients,function(clientname,client){
+            clients_arr.push(clientname);
+            const newDiv = document.createElement("div");
+            const newA = document.createElement("a");
+            newA.appendChild(document.createTextNode(clientname));
+            // newA.setAttribute("id",clientname);
+            newDiv.appendChild(newA);
+            $("#users").append(newDiv);
+        });
+        if(addOpen||editOpen){
+            updateMsg("Online userlist has updated; please close dialog to update it");
+        }
+        $("#member_select").empty();
+        $("#edit_member_select").empty();
+        addOption(clients_arr,"#member_select");
+        addOption(clients_arr,"#edit_member_select");
+    })
+
+    // show current group members
+    socketio.on("show_curmembers",function(data){
+        $("#groupmembers").empty();
+        const client = $("#username span").text(); // get current client
+        const isCreator = client == data.creator; // check if client is creator
+        $.each(data.members,function(ind,member){
+            const newDiv = document.createElement("div");
+            newDiv.setAttribute("style","text-align:center;")
+            const newA = document.createElement("a");
+            newA.setAttribute("id",member);
+            newA.setAttribute("name","mb");
+            newA.appendChild(document.createTextNode(member));
+            newDiv.appendChild(newA);
+            if(isCreator){
+                // kick someone out 
+                const newAkick = document.createElement("a");
+                newAkick.setAttribute("class","material-icons nav-icons");
+                newAkick.setAttribute("name","mbKick");
+                newAkick.setAttribute("style","font-size:12px; padding-left:10px;");
+                newAkick.appendChild(document.createTextNode("close"));
+                newDiv.appendChild(newAkick);
+            }
+            $("#groupmembers").append(newDiv);
+        }); 
+    });
+    
+    socketio.on("show_editroom",function(data){
+        showEditchatroom(data.roomname,data.roompwd,data.blacklist,data.desc);
+    });
+
+    // stay room msg
+    socketio.on("stayroom_switch",function(data){
+        talkPublic(data.roomname);
+    });
+
+    // show room description
+    socketio.on("show_roomdesc",function(data){
+        $(".groupdesc").empty();
+        if(data.desc!=""){
+            $(".groupdesc").parent().show();
+            const newDiv = document.createElement("div");
+            const newP =document.createElement("p");
+            newP.appendChild(document.createTextNode(data.desc));
+            newDiv.appendChild(newP);
+            $(".groupdesc").append(newDiv);
+        }else{
+            $(".groupdesc").parent().hide();
+
+        }
+ 
+    });
+
+    socketio.on("start_typing",function(data){
+        const newDiv = document.createElement("div");
+        newDiv.setAttribute("id",data.username+"_typing");
+        newDiv.setAttribute("class","logmsg");
+        newDiv.setAttribute("style","text-align:center;");
+        const newSpanmsg = document.createElement("span");
+        newSpanmsg.setAttribute("style","font-size:10px;color:#66757f;");
+        var message = data.username + " is typing";
+        newSpanmsg.appendChild(document.createTextNode(message));
+        newDiv.appendChild(newSpanmsg);
+        $(".msgcontent").append(newDiv);
+
+    });
+    
+    socketio.on("stop_typing",function(data){
+        $("#"+data.username+"_typing").remove();
+    })
+
+    // keyboard event
+    $(document).on("keyup","#message_input",function(event){
+        if(event.which==13){
+            event.preventDefault();
+        }
+        curInput = $(this).val();
+        clearTimeout(typingTimer);
+        typing_tic = (new Date()).getTime(); // record typing time
+        listenTyping(typing_tic,500);
+    });
+
+    $(document).on("keypress","#message_input",function(event){
+        curInput = $(this).val();
+        clearTimeout(typingTimer);
+        if(!isTyping){
+            isTyping = true;
+            socketio.emit("start_typing");
+        }
+    })
+    
+
+    // click event
+       
+    // send login message to server        
+    $("#send_btn").click(function(e){
+        e.preventDefault(); // which is very important in Node.js cuz it will reload by default setting; for sending message, we may addkeyboard listener, like enter (event.which ==13)
+        sendMessage();
+    });
+   
+    $(document).on("click","#groupmembers a",function(){
+        const linktype =$(this).attr("name");
+        if(linktype=="mb"){
+            talkPrivate($(this).attr("id"));
+        }else{
+            kickMember($(this).prev().attr("id")); // get previous sibling's id
+        }
+    });
+   
+    // show dialog addchatroom
+    $("#addchatroom").click(function(e) {
+        e.preventDefault(); 
+        showAddchatroom();
+    });
+        
+    // switch room by password or directly 
+    $(document).on('click','#rooms a',function(){
+        const roomtype = $(this).attr("name");
+        if(roomtype=="pwdEnter"){
+            var room = $(this).attr("id");
+            if(room==""){
+                room = $(this).next().attr("id");
+            }
+            showPwdenter(room);
+        }else if(roomtype=="editroom"){
+            const room = $(this).prev().attr("id");
+            socketio.emit("call_editroom",{roomname:room}); //data
+        }else if (roomtype=="deleteroom"){
+            const room = $(this).prev().prev().attr("id");
+            socketio.emit("call_deleteroom",{roomname:room}); //data
+        }else{
+            var room = $(this).attr("id");
+            socketio.emit("switch_chatroom",{roomname:room}); //data
+        }
+    } );
+
+    // kick someone out
+    function kickMember(member){
+        socketio.emit("kick_to_server",member);
+    }
+
+    // private talk
+    function talkPrivate(member){
+        var toEle = document.getElementsByName("to")[0];
+        toEle.className = "user";
+        toEle.id = member;
+        toEle.getElementsByTagName("span")[0].innerText = "Chat Room("+document.getElementsByName("cur_group")[0].className + ") - "+member;
+
+        document.getElementsByName("cur_group")[0].children[0].innerText = "person";
+    }
+    
+    // public talk
+    function talkPublic(roomname){
+        var toEle = document.getElementsByName("to")[0];
+        toEle.className = "room";
+        toEle.id = roomname;
+        toEle.getElementsByTagName("span")[0].innerText = "Chat Room("+document.getElementsByName("cur_group")[0].className + ")";
+        document.getElementsByName("cur_group")[0].children[0].innerText = "group";
+    }
+    // add pwdenter dialog 
+    function showPwdenter(room){
+
+        $("#pwdenter-dialog").dialog({          
+            width: 350,
+            height: 250,
+            modal: true,
+            buttons: {
+                "Confirm": function(e){
+                    e.preventDefault(); 
+                    const password = document.getElementById("pwdenter-password").value.trim(); // Get the username from the form
+                    socketio.emit("pwd_to_server",{roomname:room,password:password});
+                }
+            },			
+            close: function() {
+                $('#pwdenter-dialog').trigger("reset");;
+            }
+        });
+    }
+  
+    // message received from server
+    socketio.on("logmsg_to_client",function(data){
+        const newDiv = document.createElement("div");
+        newDiv.setAttribute("class","logmsg");
+        newDiv.setAttribute("style","text-align:center;");
+        const newSpanmsg = document.createElement("span");
+        newSpanmsg.setAttribute("style","font-size:10px;color:#66757f;");
+
+        var message = "- "+data.username;
+        if(data.msg){
+            message =  message + " has login -";
+        }else{
+            message =  message + " has logout -";
+        }
+        newSpanmsg.appendChild(document.createTextNode(message));
+        newDiv.appendChild(newSpanmsg);
+        $(".msgcontent").append(newDiv);
+        
+    });
+
+
+    // receive addroom message from server
+    socketio.on("roommsg_to_client",function(data){
+        if(data.msg){
+            if(data.dialogtype=="add"){            
+                addOpen = false;
+                $('#addchatroom-dialog').dialog("close"); 
+            }else{
+                editOpen = false;
+                $('#editchatroom-dialog').dialog("close"); 
+            }
+            $('.validateMsg').empty();
+        }else{
+            // update validate tips
+            updateMsg("Duplicated roomname! Please try again!");
+        }
+    });
+    socketio.on("switchmsg_to_client",function(data){
+        if(data.msg){
+            var toEle = document.getElementsByName("to")[0];
+            toEle.className = "room";
+            toEle.id = data.roomname;
+            document.getElementsByName("cur_group")[0].className = data.roomname;
+            toEle.getElementsByTagName("span")[0].innerText = "Chat Room("+data.roomname+")";
+            document.getElementsByName("cur_group")[0].children[0].innerText = "group";
+        }else{
+            updateMsg("Duplicated username! Please try again!");
+        }
+    });
+
+    socketio.on("pwdmsg_to_client",function(data){
+        if(data.msg){
+            $('.validateMsg').empty();
+            $('#pwdenter-dialog').dialog("close"); 
+            socketio.emit("switch_chatroom",{roomname:data.roomname});
+        }else{            
+        }
+    });
+
+    });
+
+    </script>
+</head>
+<body class="welcomebg">
+    	
+		<header>
+                <nav>
+                    <ul>
+                        <li>
+                            <a href="" style="color: #4285f4">
+                                <span class="material-icons nav-icons" >sms</span>
+                                <span class="text">
+                                kitChat
+                                </span>
+                            </a>
+                        </li>
+
+                        <li style="float:right;">
+                                <a id="login">
+                                    <span class="text">
+                                            Log in
+                                    </span>
+                                </a>
+                        </li>
+                        
+                        <li style="float:right;">			
+                                <a id="addchatroom" title="Add New Chatroom">
+                                        <span class="material-icons nav-icons">group_add
+                                        </span>
+                                </a>
+                        </li>
+
+                    </ul>
+                </nav>
+        </header>
+        <div class="container">
+        <div class="listcard" style="width: 230px;">
+            <div class="wrap">
+            <nav>
+                <ul>
+                <li>
+                <a>
+                    <span class="material-icons nav-icons">keyboard_arrow_left
+                    </span>
+                </a>
+                </li>
+                <li>
+                <a  style="color:#E67C73">
+                    <span class="text">
+                        Users Online
+                    </span>
+                </a>
+                </li>   
+                <li>
+                <a>
+                    <span class="material-icons nav-icons">keyboard_arrow_right
+                    </span>
+                </a>
+                </li>
+            </ul>
+            </nav>
+
+            <div class="listcontent" id="users">
+ 
+            </div>
+            
+            <nav>
+                <ul>
+                    <li>
+                    <a>
+                        <span class="material-icons nav-icons">keyboard_arrow_left
+                        </span>
+                    </a>
+                    </li>
+                    <li>
+                    <a  style="color:#E67C73">
+                        <span class="text">
+                            Chat Rooms
+                        </span>
+                    </a>
+                    </li>   
+                    <li>
+                    <a>
+                        <span class="material-icons nav-icons">keyboard_arrow_right
+                        </span>
+                    </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="listcontent" id="rooms">
+
+            </div>
+            </div>
+        </div>
+        <div class="chatroom" >
+            <div class="wrap">
+            <nav >
+                <ul>
+                    <li style="float:left;">
+                        <a name="to" id="default" class="room" style="color:#4285f4;">
+                            <span class="text">
+                                Chat Room (default)
+                            </span>
+                        </a>
+                        </li>
+                        <li style="float:right;">
+                        <a class="default" name="cur_group" > 
+                            <span class="material-icons nav-icons" >
+                                group
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="msgcontent">
+      
+            </div>
+            <form>
+            <input type="text" id="message_input" placeholder="type your message"/>
+            <button id="send_btn">send</button>
+            </form>
+        </div>
+        </div>
+        <div  style="text-align:center;width: 230px;">
+            <div>
+            <nav>
+                    <ul>
+                    <li>
+                    <a>
+                        <span class="material-icons nav-icons">keyboard_arrow_left
+                        </span>
+                    </a>
+                    </li>
+                    <li>
+                    <a>
+                        <span class="text" style=" color:#33B679 ">
+                            Group Members
+                        </span>
+                    </a>
+                    </li>   
+                    <li>
+                    <a>
+                        <span class="material-icons nav-icons">keyboard_arrow_right
+                        </span>
+                    </a>
+                    </li>
+                </ul>
+                </nav>
+            <div id="groupmembers">
+
+            </div>
+            <div>
+            <nav>
+                    <ul>
+                    <li>
+                    <a>
+                        <span class="material-icons nav-icons">keyboard_arrow_left
+                        </span>
+                    </a>
+                    </li>
+                    <li>
+                    <a  style="color:#33B679;">
+                        <span class="text">
+                                Group Description
+                        </span>
+                    </a>
+                    </li>   
+                    <li>
+                    <a>
+                        <span class="material-icons nav-icons">keyboard_arrow_right
+                        </span>
+                    </a>
+                    </li>
+                </ul>
+            </nav>  
+            <div class="groupdesc">
+
+            </div>
+            </div>
+        </div>
+        </div>
+		<form id="addchatroom-dialog" class="dialog" title="Add New Chatroom">   
+                <p class="validateMsg"></p> 
+                <fieldset>
+                    <label for="roomname_input">Room Name</label>
+                    <input type="text" id="roomname_input"  class="text ui-widget-content ui-corner-all">    
+                    <label for="password_input">Room Password</label>
+                    <input type="password" id="password_input"  class="text ui-widget-content ui-corner-all" placeholder="Set private by enter"> 
+                    <label for="description_input">Description</label> 
+                    <input type="text" id="description_input"  class="text ui-widget-content ui-corner-all" placeholder="Describe the chatroom">       
+                    <label for="member_select">Blacklist</label> 
+                    <select id="member_select">
+                    </select> 
+                    <ul class="tags">
+                        <li class="tagAdd taglist">  
+                           <input type="hidden" id="ac-addblacklist" >
+                       </li>
+                    </ul>
+                </fieldset>
+        </form>
+        <form id="editchatroom-dialog" class="dialog" title="Edit New Chatroom">   
+            <p class="validateMsg"></p> 
+            <fieldset>
+                <label for="edit_roomname_input">Room Name</label>
+                <input type="text" id="edit_roomname_input"  class="text ui-widget-content ui-corner-all">    
+                <label for="edit_password_input">Room Password</label>
+                <input type="password" id="edit_password_input"  class="text ui-widget-content ui-corner-all" placeholder="Set private by enter">    
+                <label for="edit_description_input">Description</label> 
+                <input type="text" id="edit_description_input"  class="text ui-widget-content ui-corner-all" placeholder="Describe the chatroom"> 
+                <label for="edit_member_select">Blacklist</label> 
+                <select id="edit_member_select">
+                </select>
+                <ul class="tags">
+                        <li class="tagAdd taglist">  
+                           <input type="hidden" id="ec-addblacklist" >
+                       </li>
+                </ul>
+              
+            </fieldset>
+        </form>
+        <form  id="login-dialog"  class="dialog" title="Log in">
+                <p class="validateMsg"></p> 
+                <fieldset>
+                <input type="text" id="login-username" placeholder="Enter your username"/>
+                </fieldset>
+        </form>
+        <form  id="pwdenter-dialog"  class="dialog" title="Join room">
+                <p class="validateMsg"></p> 
+                <fieldset>
+                <input type="password" id="pwdenter-password" placeholder="Enter room password"/>
+                </fieldset>
+        </form>
+    </div>
+
+ </body>
+</html>

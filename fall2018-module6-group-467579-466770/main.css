@@ -1,0 +1,269 @@
+body {
+    margin: 0;
+    font-size: 14px;
+    font-family: 'Product Sans',Arial,sans-serif;
+    overflow: hidden;
+    height: 100%;
+    background:#fff;
+}
+.welcomebg{
+     /* copyright to www.kitkat.com */
+    background-image:url(https://www.kitkat.com/images/kitkat-snap.png); 
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color:rgb(171,34,35);
+}
+
+/* header */
+header{
+    height: 100%;
+    text-align: center;
+    width: auto;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+nav{
+    height: 100%;
+    text-align: center;
+    width: auto;
+}
+
+nav ul{
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #ffffff;
+    position:relative;
+}
+
+nav ul li{
+    float: left;
+
+}
+
+nav ul>li .nav-icons{
+    float: left;
+    margin: 11px 0 0 10px;
+    width: 23px;
+    height: 23px;
+    color: inherit;
+    background: transparent;
+    display: inline-block;
+    font-style: normal;
+    vertical-align: baseline;
+    position: relative;
+    
+}
+
+nav ul>li>a .text {
+    float: left;
+    margin-left: 3px;
+    margin-top: 17px;
+    padding: 0;
+}
+
+nav ul>li>a {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    height: 46px;
+    line-height: 1;
+    padding: 0 14px 0 4px;
+}
+
+nav ul li a {
+    position: relative;
+    font-size: 12px;
+}
+
+a {
+    color: #66757f;
+    text-decoration: none;
+}
+
+a:link, a:visited,a:hover,a:active{
+    color: #4285f4;
+}
+
+/* body */
+/* main display:flex */
+div{
+    display: block;
+}
+
+.container{
+    width: 100%;
+    display: flex;    
+    padding-left:5%;
+    padding-right:5%;
+
+}
+
+/* middle chatroom */
+.chatroom{
+    width:50%;
+    min-width: 300px;
+}
+
+.chatroom form{
+    padding-top: 15px;
+    border-top: 1px solid #d7d7d7;
+    min-height: 20px;
+    margin-bottom: 30px;
+    float: left;
+    width: 100%;
+}
+
+.chatroom input[type=text] {
+    display: inline;
+    border: none;
+    box-shadow: none;
+    min-height: 30px;
+}
+
+.msgcontent{
+    max-height: 350px;
+    min-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 30px;
+}
+
+.msgbox{ 
+    /* parent */
+    display: table;
+    line-height: 30px;
+}
+
+.msgbox span{
+    /* child */
+    display: table-cell;
+    vertical-align: middle;
+    padding-left:5px; 
+}
+
+/* left listcard>wrap>listcontent */
+.listcard{
+    display: flex;
+    flex: none;
+    width: 220px;
+    overflow: hidden;
+    text-align: center;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.wrap{
+    /* overflow-x: hidden;
+    overflow-y: auto; */
+    overflow: hidden;
+    flex-shrink: 1;
+    display: flex;
+    flex-shrink: 1;
+    flex-direction: column;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.listcontent{
+    margin-top: 10px;
+    min-height: 300px;
+    max-height: 300px;
+    overflow-y: scroll;
+}
+
+/* set scroll bar to be invisible */
+::-webkit-scrollbar{
+    width: 0px;
+    background:transparent;
+}
+
+
+/* popup dialog */
+#login-dialog{
+    display: none;
+    position: relative;
+}
+
+#addchatroom-dialog{
+    display: none;
+    position: relative;
+}
+#editchatroom-dialog{
+    display: none;
+    position: relative;
+}
+
+#pwdenter-dialog{
+    display: none;
+    position: relative;
+}
+label{ 
+    display:block; }
+
+fieldset { 
+    padding:0; 
+    border:0; 
+    margin-top:10px; 
+}
+
+ol, ul {
+    list-style: outside none none;
+}
+
+.tags {
+    background: none repeat scroll 0 0 #fff;
+    border: 1px solid #ccc;
+    display: table;
+    padding: 0.5em;
+    width: 100%;
+}
+
+.tags li.tagAdd, .tags li.addedTag {
+    float: left;
+    
+    margin: 0.25em;
+}
+.tags li.addedTag {
+    background: none repeat scroll 0 0  rgb(121, 134, 203);
+    border-radius: 2px;
+    color: #fff;
+    padding: 0.25em;
+}
+.tags input, li.addedTag {
+    border: 1px solid transparent;
+    border-radius: 2px;
+    box-shadow: none;
+    display: block;
+    width: auto;
+    padding: 0.25em;
+}
+.tags input:hover {
+    border: 1px solid #000;
+}
+
+/* overwrite jquery css */
+.ui-dialog .ui-state-error { padding: .3em !important; }
+.validateMsg { border: 1px solid transparent !important; padding: 0.3em !important; }
+.ui-widget-header{
+    background: #fff !important;
+    border: 0px !important;
+}
+.ui-button{
+    background: #fff !important;
+    /* color:black; */
+}
+.ui-state-default{
+    background: #fff !important;
+    border: 0px !important;
+
+}
+.ui-state-hover{
+    background:#4285f4 !important;
+
+    color: #ffffff !important;
+}
+.overflow {
+    height: 100px;
+}
+
